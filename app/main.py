@@ -4,14 +4,17 @@ from concurrent.futures import ProcessPoolExecutor
 import asyncio
 from app.model import run_inference
 from app.schemas import PredictionResponse
+from PIL import UnidentifiedImageError
 
 app = FastAPI(title="ResNet-18 Image Classifier", version="1.0.0")
 executor = ProcessPoolExecutor(max_workers=4)
 
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 @app.get("/", response_class=HTMLResponse)
 async def demo_ui():
+    # ... (HTML UI code remains the same)
     return """
     <!DOCTYPE html>
     <html>
@@ -78,6 +81,11 @@ async def demo_ui():
                     const response = await fetch('/predict', { method: 'POST', body: formData });
                     const data = await response.json();
                     
+                    if (response.status !== 200) {
+                        alert(data.detail || 'Prediction failed');
+                        return;
+                    }
+
                     document.getElementById('res-label').innerText = data.label;
                     document.getElementById('res-score').innerText = (data.score * 100).toFixed(2) + '%';
                     document.getElementById('res-time').innerText = data.inference_time_ms.toFixed(2) + ' ms';
@@ -101,9 +109,23 @@ async def health():
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(file: UploadFile = File(...)):
+    # 1. ตรวจสอบ Content Type
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(status_code=415, detail="Unsupported media type")
+    
+    # 2. อ่านข้อมูล
     image_bytes = await file.read()
+
+    # 3. ตรวจสอบขนาดไฟล์ (Fix สำหรับ test_predict_rejects_oversized_file)
+    if len(image_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large")
+
+    # 4. รัน Inference และดักจับ Error (Fix สำหรับ test_predict_rejects_corrupted_file)
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(executor, run_inference, image_bytes)
-    return result
+    try:
+        result = await loop.run_in_executor(executor, run_inference, image_bytes)
+        return result
+    except UnidentifiedImageError:
+        raise HTTPException(status_code=400, detail="Invalid image file")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
