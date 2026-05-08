@@ -1,3 +1,12 @@
+---
+title: Image Classification Service
+emoji: 🖼️
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # High-Throughput Image Classification Service
 
 A production-ready image classification API using ResNet-18 with ONNX optimization, FastAPI, and CI/CD pipeline.
