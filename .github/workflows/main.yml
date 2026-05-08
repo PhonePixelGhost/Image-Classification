@@ -29,10 +29,20 @@ jobs:
           export PYTHONPATH=$PYTHONPATH:.
           pytest tests/
 
-      - name: Push to Hugging Face (Using CLI for Large Files)
+      - name: Push to Hugging Face
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # ใช้ huggingface-cli upload แทน git push เพื่อรองรับไฟล์ใหญ่โดยไม่ต้องตั้งค่า LFS เอง
-          huggingface-cli upload PhonePixelGhost/Image_Classification_Service . . --repo-type space --token $HF_TOKEN --exclude ".git/*" ".github/*"
+          # ใช้ Python Script ในการอัปโหลดเพื่อความแน่นอน
+          python -c "
+          from huggingface_hub import HfApi
+          import os
+          api = HfApi()
+          api.upload_folder(
+              folder_path='.',
+              repo_id='PhonePixelGhost/Image_Classification_Service',
+              repo_type='space',
+              token=os.environ['HF_TOKEN'],
+              ignore_patterns=['.git/*', '.github/*']
+          )"
