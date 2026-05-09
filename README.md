@@ -168,7 +168,25 @@ The GitHub Actions workflow automatically:
 - **Output**: 1000 class probabilities
 - **Optimization**: ONNX + Dynamic Quantization (QUint8)
 
-## Development
+## Cloud API Usage
+
+The service is deployed on Hugging Face Spaces. You can access the API directly using the following endpoint:
+
+**Endpoint:** `https://phonepixelghost-image-classification-service.hf.space/predict`
+
+### 1. Using cURL
+You can test the API from your terminal using this command:
+
+```bash
+curl -X POST https://phonepixelghost-image-classification-service.hf.space/predict \
+  -F "file=@test.jpg"
+```
+
+### 2. Interactive UI
+Visit the Space URL to use the modern web interface:
+[Hugging Face Space Demo](https://huggingface.co/spaces/PhonePixelGhost/Image_Classification_Service)
+
+## Local Development
 
 ### Adding New Features
 
